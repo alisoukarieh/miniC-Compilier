@@ -33,7 +33,6 @@ node_t make_ident(const char* s);
 node_t make_int(int64_t v);
 node_t make_bool(bool b);
 node_t make_string(const char* s);
-node_t list_single(node_t elem);
 node_t list_append(node_t list, node_t elem);
 
 %}
@@ -102,12 +101,12 @@ listdecl :
 
 
 listdeclnonnull : 
-        vardecl
-        | listdeclnonnull vardecl
+        vardecl     { $$ = $1; }
+        | listdeclnonnull vardecl { $$ = list_append($1, $2); }
         ;
 
 vardecl : 
-        type listtypedecl TOK_SEMICOL
+        type listtypedecl TOK_SEMICOL   { $$ = make_node(NODE_DECLS, 2, $1, $2); }
         ;
 
 type : 
@@ -117,95 +116,104 @@ type :
         ;
 
 listtypedecl : 
-        decl
-        | listtypedecl TOK_COMMA decl
+        decl    { $$ = $1; }
+        | listtypedecl TOK_COMMA decl   { $$ = list_append($1, $3); }
         ;
 
 decl : 
-        ident
-        | ident TOK_AFFECT expr
+        ident   { $$ = make_node(NODE_DECL, 1, $1); }
+        | ident TOK_AFFECT expr { $$ = make_node(NODE_DECL, 2, $1, $3); }
         ;
 
 maindecl : 
-        type ident TOK_LPAR TOK_RPAR block
+        type ident TOK_LPAR TOK_RPAR block { $$ = make_node(NODE_FUNC, 3, $1, $2, $5); }
         ;
 
 listinst : 
-        listinstnonnull
+        listinstnonnull { $$ = $1; }
         |{ $$ = NULL; }
         ;
 
 listinstnonnull : 
-        inst
-        | listinstnonnull inst
+        inst    { $$ = $1; }
+        | listinstnonnull inst  { $$ = list_append($1, $2); }
         ;
 
 
 inst : 
-        expr TOK_SEMICOL
-        | TOK_IF TOK_LPAR expr TOK_RPAR inst TOK_ELSE inst                          { $$ = NULL; }
-        | TOK_IF TOK_LPAR expr TOK_RPAR inst %prec TOK_THEN                         { $$ = NULL; }
-        | TOK_WHILE TOK_LPAR expr TOK_RPAR inst                                     { $$ = NULL; }
-        | TOK_FOR TOK_LPAR expr TOK_SEMICOL expr TOK_SEMICOL expr TOK_RPAR inst     { $$ = NULL; }
-        | TOK_DO inst TOK_WHILE TOK_LPAR expr TOK_RPAR TOK_SEMICOL                  { $$ = NULL; }
-        | block
+        expr TOK_SEMICOL                                                            { $$ = $1; }
+        | TOK_IF TOK_LPAR expr TOK_RPAR inst TOK_ELSE inst                          { $$ = make_node(NODE_IF, 3, $3, $5, $7); }
+        | TOK_IF TOK_LPAR expr TOK_RPAR inst %prec TOK_THEN                         { $$ = make_node(NODE_IF, 3, $3, $5, NULL); }
+        | TOK_WHILE TOK_LPAR expr TOK_RPAR inst                                     { $$ = make_node(NODE_WHILE, 2, $3, $5); }
+        | TOK_FOR TOK_LPAR expr TOK_SEMICOL expr TOK_SEMICOL expr TOK_RPAR inst     { $$ = make_node(NODE_FOR, 4, $3, $5, $7, $9); }
+        | TOK_DO inst TOK_WHILE TOK_LPAR expr TOK_RPAR TOK_SEMICOL                  { $$ = make_node(NODE_DOWHILE, 2, $2, $5); }
+        | block                                                                     { $$ = $1; }
         | TOK_SEMICOL                                                               { $$ = NULL; }
-        | TOK_PRINT TOK_LPAR listparamprint TOK_RPAR TOK_SEMICOL                    { $$ = NULL; }
+        | TOK_PRINT TOK_LPAR listparamprint TOK_RPAR TOK_SEMICOL                    { $$ = make_node(NODE_PRINT, 1, $3); }
         ;
 
 block : 
-        TOK_LACC listdecl listinst TOK_RACC                                         { $$ = NULL; }
+        TOK_LACC listdecl listinst TOK_RACC                                         { $$ = make_node(NODE_BLOCK, 2, $2, $3); }
         ;
 
 expr : 
-        expr TOK_MUL expr
-        | expr TOK_DIV expr
-        | expr TOK_PLUS expr
-        | expr TOK_MINUS expr
-        | expr TOK_MOD expr
-        | expr TOK_LT expr
-        | expr TOK_GT expr
-        | TOK_MINUS expr %prec TOK_UMINUS             { $$ = NULL; }
-        | expr TOK_GE expr
-        | expr TOK_LE expr
-        | expr TOK_EQ expr
-        | expr TOK_NE expr
-        | expr TOK_AND expr
-        | expr TOK_OR expr
-        | expr TOK_BAND expr
-        | expr TOK_BOR expr
-        | expr TOK_BXOR expr
-        | expr TOK_SRL expr
-        | expr TOK_SRA expr
-        | expr TOK_SLL expr
-        | TOK_NOT expr                          { $$ = NULL; }
-        | TOK_BNOT expr                         { $$ = NULL; }
-        | TOK_LPAR expr TOK_RPAR                { $$ = NULL; }
-        | ident TOK_AFFECT expr
-        | TOK_INTVAL                            { $$ = NULL; }
-        | TOK_TRUE                              { $$ = NULL; }
-        | TOK_FALSE                             { $$ = NULL; }
-        | ident
+        expr TOK_MUL expr                       { $$ = make_node(NODE_MUL, 2, $1, $3); }
+        | expr TOK_DIV expr                     { $$ = make_node(NODE_DIV, 2, $1, $3); }
+        | expr TOK_PLUS expr                    { $$ = make_node(NODE_PLUS, 2, $1, $3); }   
+        | expr TOK_MINUS expr                   { $$ = make_node(NODE_MINUS, 2, $1, $3); }
+        | expr TOK_MOD expr                     { $$ = make_node(NODE_MOD, 2, $1, $3); }
+        | expr TOK_LT expr                      { $$ = make_node(NODE_LT, 2, $1, $3); }
+        | expr TOK_GT expr                      { $$ = make_node(NODE_GT, 2, $1, $3); }
+        | TOK_MINUS expr %prec TOK_UMINUS       { $$ = make_node(NODE_UMINUS, 1, $2); }
+        | expr TOK_GE expr                      { $$ = make_node(NODE_GE, 2, $1, $3); }
+        | expr TOK_LE expr                      { $$ = make_node(NODE_LE, 2, $1, $3); }
+        | expr TOK_EQ expr                      { $$ = make_node(NODE_EQ, 2, $1, $3); }
+        | expr TOK_NE expr                      { $$ = make_node(NODE_NE, 2, $1, $3); }
+        | expr TOK_AND expr                     { $$ = make_node(NODE_AND, 2, $1, $3); }
+        | expr TOK_OR expr                      { $$ = make_node(NODE_OR, 2, $1, $3); }
+        | expr TOK_BAND expr                    { $$ = make_node(NODE_BAND, 2, $1, $3); }
+        | expr TOK_BOR expr                     { $$ = make_node(NODE_BOR, 2, $1, $3); }
+        | expr TOK_BXOR expr                    { $$ = make_node(NODE_BXOR, 2, $1, $3); }
+        | expr TOK_SRL expr                     { $$ = make_node(NODE_SRL, 2, $1, $3); }
+        | expr TOK_SRA expr                     { $$ = make_node(NODE_SRA, 2, $1, $3); }
+        | expr TOK_SLL expr                     { $$ = make_node(NODE_SLL, 2, $1, $3); }
+        | TOK_NOT expr                          { $$ = make_node(NODE_NOT, 1, $2); }
+        | TOK_BNOT expr                         { $$ = make_node(NODE_BNOT, 1, $2); }
+        | TOK_LPAR expr TOK_RPAR                { $$ = $2; }
+        | ident TOK_AFFECT expr                 { $$ = make_node(NODE_AFFECT, 2, $1, $3); }
+        | TOK_INTVAL                            { $$ = make_int($1); }
+        | TOK_TRUE                              { $$ = make_bool(true); }
+        | TOK_FALSE                             { $$ = make_bool(false); }
+        | ident                                  { $$ = $1; }
         ;
 
 listparamprint : 
-        listparamprint TOK_COMMA paramprint
-        | paramprint
+        listparamprint TOK_COMMA paramprint { $$ = list_append($1, $3); }
+        | paramprint    { $$ = $1; }
         ;
 
 paramprint : 
-        ident
-        | TOK_STRING    { $$ = NULL; }
+        ident   { $$ = $1; }
+        | TOK_STRING    { $$ = make_string($1); }
         ;
 
 ident : 
-        TOK_IDENT   { $$ = NULL; }
+        TOK_IDENT   { $$ = make_ident($1); }
         ;
 
         
 %%
 
 /* A completer et/ou remplacer avec d'autres fonctions */
+
+static char* xstrdup(const char* s) {
+    size_t n = strlen(s) + 1;
+    char* r = malloc(n);
+    memcpy(r, s, n);
+    return r;
+}
+
+
 
 node_t make_node(node_nature nature, int nops, ...) {
     node_t n = malloc(sizeof(node_s));
@@ -244,7 +252,7 @@ node_t make_type(node_type t) {
 
 node_t make_ident(const char* s) {
     node_t n = make_node(NODE_IDENT, 0);
-    n->ident = strdup(s);
+    n->ident = xstrdup(s);
     return n;
 }
 
@@ -264,22 +272,18 @@ node_t make_bool(bool b) {
 
 node_t make_string(const char* s) {
     node_t n = make_node(NODE_STRINGVAL, 0);
-    n->str = strdup(s);
+    n->str = xstrdup(s);
     return n;
 }
 
-node_t list_single(node_t elem) {
-    return make_node(NODE_LIST, 2, elem, NULL);
-}
 
 node_t list_append(node_t list, node_t elem) {
-    if (!list) return list_single(elem);
     return make_node(NODE_LIST, 2, list, elem);
 }
 
 
 void analyse_tree(node_t root) {
-    //dump_tree(root, "apres_syntaxe.dot");
+    dump_tree(root, "apres_syntaxe.dot");
     if (!stop_after_syntax) {
         analyse_passe_1(root);
         //dump_tree(root, "apres_passe_1.dot");

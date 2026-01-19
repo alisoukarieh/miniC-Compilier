@@ -7,12 +7,11 @@ Implementation of command-line argument parsing and AST memory management for th
 
 ## Status Summary
 
-| Task | Status |
-|------|--------|
-| `parse_args()` implementation | Done |
-| `free_nodes()` implementation | Done |
-| Build verification | Pending |
-| Test command-line options | Pending |
+| Task                                  | Status  |
+| ------------------------------------- | ------- |
+| `parse_args()` implementation         | Done    |
+| `free_nodes()` implementation         | Done    |
+| Test command-line options             | Done    |
 | Test `free_nodes()` memory management | Pending |
 
 ---
@@ -25,15 +24,15 @@ Implementation of command-line argument parsing and AST memory management for th
 
 **Implemented features:**
 
-| Flag | Argument | Description | Default |
-|------|----------|-------------|---------|
-| `-b` | none | Display banner (compiler name + team members) | - |
-| `-o` | `<filename>` | Output assembly file | `out.s` |
-| `-t` | `<int>` | Trace level (0-5) | 0 |
-| `-r` | `<int>` | Max registers (4-8) | 8 |
-| `-s` | none | Stop after syntax analysis | false |
-| `-v` | none | Stop after verification (passe_1) | false |
-| `-h` | none | Display help message | - |
+| Flag | Argument     | Description                                   | Default |
+| ---- | ------------ | --------------------------------------------- | ------- |
+| `-b` | none         | Display banner (compiler name + team members) | -       |
+| `-o` | `<filename>` | Output assembly file                          | `out.s` |
+| `-t` | `<int>`      | Trace level (0-5)                             | 0       |
+| `-r` | `<int>`      | Max registers (4-8)                           | 8       |
+| `-s` | none         | Stop after syntax analysis                    | false   |
+| `-v` | none         | Stop after verification (passe_1)             | false   |
+| `-h` | none         | Display help message                          | -       |
 
 **Validation rules implemented:**
 - `-s` and `-v` are mutually exclusive (error if both used)
@@ -164,16 +163,16 @@ CFLAGS="-fsanitize=address -g" make
 
 ### Expected Behavior
 
-| Command | Expected Output |
-|---------|-----------------|
-| `./minicc -h` | Usage message, exit 0 |
-| `./minicc -b` | Banner with team names, exit 0 |
-| `./minicc -s -v file.c` | Error message, exit 1 |
-| `./minicc -t 6 file.c` | Error: trace level out of range, exit 1 |
-| `./minicc -r 3 file.c` | Error: registers out of range, exit 1 |
-| `./minicc` | Error: input file required, exit 1 |
-| `./minicc file.c` | Compile file.c to out.s |
-| `./minicc -o test.s file.c` | Compile file.c to test.s |
+| Command                     | Expected Output                         |
+| --------------------------- | --------------------------------------- |
+| `./minicc -h`               | Usage message, exit 0                   |
+| `./minicc -b`               | Banner with team names, exit 0          |
+| `./minicc -s -v file.c`     | Error message, exit 1                   |
+| `./minicc -t 6 file.c`      | Error: trace level out of range, exit 1 |
+| `./minicc -r 3 file.c`      | Error: registers out of range, exit 1   |
+| `./minicc`                  | Error: input file required, exit 1      |
+| `./minicc file.c`           | Compile file.c to out.s                 |
+| `./minicc -o test.s file.c` | Compile file.c to test.s                |
 
 ### Code Quality
 - No memory leaks when `free_nodes()` is called on the AST
@@ -188,16 +187,16 @@ CFLAGS="-fsanitize=address -g" make
 - `common.c` - Added implementations for `parse_args()` and `free_nodes()`
 
 ### Functions Added
-| Function | Location | Purpose |
-|----------|----------|---------|
+| Function         | Location    | Purpose                 |
+| ---------------- | ----------- | ----------------------- |
 | `print_banner()` | common.c:24 | Display compiler banner |
-| `print_help()` | common.c:30 | Display usage help |
+| `print_help()`   | common.c:30 | Display usage help      |
 
 ### Functions Modified
-| Function | Location | Change |
-|----------|----------|--------|
-| `parse_args()` | common.c:42 | Full implementation with getopt |
-| `free_nodes()` | common.c:126 | Full recursive implementation |
+| Function       | Location     | Change                          |
+| -------------- | ------------ | ------------------------------- |
+| `parse_args()` | common.c:42  | Full implementation with getopt |
+| `free_nodes()` | common.c:126 | Full recursive implementation   |
 
 ---
 
