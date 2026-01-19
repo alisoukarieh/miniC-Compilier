@@ -1,0 +1,26 @@
+# Object files
+*.o
+
+# Generated lex/yacc files
+lex.yy.c
+y.tab.c
+y.tab.h
+
+# Binary executable
+minicc
+
+# Output files
+out.s
+*.dot
+
+# Editor/IDE files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
