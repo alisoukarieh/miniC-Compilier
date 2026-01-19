@@ -12,7 +12,8 @@ Implementation of command-line argument parsing and AST memory management for th
 | `parse_args()` implementation | Done |
 | `free_nodes()` implementation | Done |
 | Build verification | Pending |
-| Testing | Pending |
+| Test command-line options | Pending |
+| Test `free_nodes()` memory management | Pending |
 
 ---
 
@@ -87,9 +88,70 @@ make
 ./minicc -v test.c       # Stop after verification
 ```
 
-### 3. Memory Leak Testing (Optional)
+### 3. Test `free_nodes()` Memory Management
+
+#### 3.1 Create a test file
+Create `test_free.c` with various AST node types:
+```c
+int main() {
+    int x;
+    int y;
+    bool flag;
+    x = 10;
+    y = x + 5;
+    if (x > 0) {
+        print(y);
+    }
+    while (flag) {
+        x = x - 1;
+    }
+}
+```
+
+#### 3.2 Run with Valgrind (Linux/WSL)
 ```bash
-valgrind --leak-check=full ./minicc test.c
+valgrind --leak-check=full --show-leak-kinds=all ./minicc test_free.c
+```
+
+**Expected output:**
+```
+==XXXXX== HEAP SUMMARY:
+==XXXXX==     All heap blocks were freed -- no leaks are possible
+```
+
+#### 3.3 Verify `free_nodes()` is called
+Check that `free_nodes(root)` is called at the end of compilation in `main()` or the grammar file. If not present, add it before program exit.
+
+#### 3.4 Test edge cases
+```bash
+# Empty program (minimal AST)
+echo "int main() {}" > empty.c
+valgrind ./minicc empty.c
+
+# Program with strings
+echo 'int main() { print("hello"); }' > strings.c
+valgrind ./minicc strings.c
+
+# Deeply nested expressions
+echo "int main() { int x; x = 1+2+3+4+5+6+7+8+9+10; }" > nested.c
+valgrind ./minicc nested.c
+```
+
+#### 3.5 Manual verification checklist
+- [ ] `free_nodes()` handles NULL input gracefully
+- [ ] All child nodes are freed before parent
+- [ ] `opr` array is freed after children
+- [ ] `ident` string is freed if not NULL
+- [ ] `str` string is freed if not NULL
+- [ ] No double-free errors
+- [ ] No use-after-free errors
+
+### 4. Memory Leak Summary (Optional - AddressSanitizer)
+Compile with AddressSanitizer for additional checks:
+```bash
+make clean
+CFLAGS="-fsanitize=address -g" make
+./minicc test_free.c
 ```
 
 ---
