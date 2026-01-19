@@ -11,8 +11,8 @@ Implementation of command-line argument parsing and AST memory management for th
 |------|--------|
 | `parse_args()` implementation | Done |
 | `free_nodes()` implementation | Done |
-| Build verification | Pending |
-| Testing | Pending |
+| Build verification | Done |
+| Testing | Done (46/46 tests pass) |
 
 ---
 

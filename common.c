@@ -129,6 +129,13 @@ void parse_args(int argc, char **argv)
         exit(1);
     }
 
+    // Only one input file is allowed
+    if (optind + 1 < argc)
+    {
+        fprintf(stderr, "Error: only one input file is allowed\n");
+        exit(1);
+    }
+
     infile = argv[optind];
 }
 
