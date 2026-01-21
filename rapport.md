@@ -354,7 +354,192 @@ Nous utilisons les fonctions fournies par la bibliotheque `miniccutils` :
 - `push_context()` : Empile un nouveau contexte (pour les blocs)
 - `pop_context()` : Depile le contexte courant
 - `env_add_element()` : Ajoute une variable au contexte courant
+- `get_decl_node()` : Recherche une variable dans l'environnement
 - `get_env_current_offset()` : Recupere l'offset courant pour l'allocation en pile
+
+### 5.5 Traitement des expressions
+
+La fonction `expr_processing` effectue la verification de types et la decoration de l'arbre pour toutes les expressions. L'implementation utilise un `switch` sur la nature du noeud :
+
+**Operateurs arithmetiques (PLUS, MINUS, MUL, DIV, MOD) :**
+
+```c
+case NODE_PLUS:
+case NODE_MINUS:
+case NODE_MUL:
+case NODE_DIV:
+case NODE_MOD:
+    expr_processing(left);
+    expr_processing(right);
+    if (left->type != TYPE_INT || right->type != TYPE_INT) {
+        error_rule(expr, "1.30", "Operands of arithmetic operators must be of type int");
+    }
+    expr->type = TYPE_INT;
+    break;
+```
+
+**Raisonnement :** Les operateurs arithmetiques necessitent des operandes de type `int` et produisent un resultat de type `int` (regle 1.30).
+
+**Operateurs de comparaison (LT, GT, LE, GE) :**
+
+Ces operateurs prennent des operandes `int` et retournent un `bool` (regle 1.30).
+
+**Operateurs d'egalite (EQ, NE) :**
+
+```c
+case NODE_EQ:
+case NODE_NE:
+    expr_processing(left);
+    expr_processing(right);
+    if (left->type != right->type) {
+        error_rule(expr, "1.30", "Operands of equality operators must have the same type");
+    }
+    expr->type = TYPE_BOOL;
+    break;
+```
+
+**Raisonnement :** Les operateurs d'egalite acceptent des operandes de meme type (int ou bool) et retournent un `bool`.
+
+**Operateurs logiques (AND, OR) :**
+
+Necessitent des operandes `bool` et retournent un `bool` (regle 1.30).
+
+**Operateurs bit-a-bit (BAND, BOR, BXOR, SLL, SRA, SRL) :**
+
+Necessitent des operandes `int` et retournent un `int` (regle 1.30).
+
+**Operateurs unaires :**
+
+```c
+case NODE_NOT:
+    expr_processing(left);
+    if (left->type != TYPE_BOOL) {
+        error_rule(expr, "1.31", "Operand of logical not operator must be of type bool");
+    }
+    expr->type = TYPE_BOOL;
+    break;
+
+case NODE_UMINUS:
+case NODE_BNOT:
+    expr_processing(left);
+    if (left->type != TYPE_INT) {
+        error_rule(expr, "1.31", "Operand must be of type int");
+    }
+    expr->type = TYPE_INT;
+    break;
+```
+
+**Resolution des identificateurs (NODE_IDENT) :**
+
+```c
+case NODE_IDENT:{
+    node_t ident_node = get_decl_node(expr->ident);
+    if (ident_node == NULL) {
+        error_rule(expr, "1.61", "Variable '%s' not declared", expr->ident);
+    }
+    expr->type = ident_node->type;
+    expr->offset = ident_node->offset;
+    expr->decl_node = ident_node;
+    expr->global_decl = ident_node->global_decl;
+    break;
+}
+```
+
+**Raisonnement :** Pour chaque utilisation d'un identificateur, on recherche sa declaration dans l'environnement avec `get_decl_node()`. Si la variable n'existe pas, on signale une erreur (regle 1.61). Sinon, on decore le noeud avec les informations de la declaration : type, offset, pointeur vers le noeud de declaration, et indicateur global.
+
+**Affectation (NODE_AFFECT) :**
+
+```c
+case NODE_AFFECT:
+    expr_processing(left);
+    expr_processing(right);
+    if (left->nature != NODE_IDENT) {
+        error_rule(expr, "1.32", "Left operand of assignment must be a variable");
+    }
+    if (left->type != right->type) {
+        error_rule(expr, "1.32", "Type mismatch in assignment to variable '%s'", left->ident);
+    }
+    expr->type = left->type;
+    break;
+```
+
+**Raisonnement :** L'operande gauche doit etre un identificateur (lvalue) et les types doivent correspondre (regle 1.32).
+
+### 5.6 Traitement des instructions
+
+La fonction `instr_processing` verifie les instructions de controle :
+
+**Instruction IF :**
+
+```c
+case NODE_IF: {
+    expr_processing(left);
+    if (left->type != TYPE_BOOL) {
+        error_rule(left, "1.18", "Expression in if statement must be of type bool");
+    }
+    instr_processing(right);
+    if (else_instr) instr_processing(else_instr);
+    break;
+}
+```
+
+**Raisonnement :** La condition d'un `if` doit etre de type `bool` (regle 1.18). Les branches then et else sont traitees recursivement.
+
+**Instruction WHILE :**
+
+La condition doit etre de type `bool` (regle 1.20).
+
+**Instruction FOR :**
+
+```c
+case NODE_FOR:{
+    expr_processing(left);      // initialisation
+    expr_processing(cond);      // condition
+    expr_processing(increment); // increment
+    if (cond->type != TYPE_BOOL) {
+        error_rule(cond, "1.21", "Condition expression in for statement must be of type bool");
+    }
+    instr_processing(right);    // corps
+    break;
+}
+```
+
+**Raisonnement :** Seule l'expression de condition doit etre de type `bool` (regle 1.21). Les expressions d'initialisation et d'increment peuvent etre de n'importe quel type.
+
+**Instruction DO-WHILE :**
+
+La condition doit etre de type `bool` (regle 1.22).
+
+**Blocs imbriques :**
+
+```c
+case NODE_BLOCK:
+    block_decl(instr);
+    break;
+```
+
+Les blocs imbriques sont traites recursivement avec `block_decl`, ce qui cree un nouveau contexte pour les variables locales.
+
+### 5.7 Traitement de l'instruction PRINT
+
+```c
+void print_processing(node_t print_node){
+    if (print_node == NULL) return;
+
+    if (print_node->nature == NODE_IDENT){
+        node_t ident_node = get_decl_node(print_node->ident);
+        if (ident_node == NULL) {
+            error_rule(print_node, "1.61", "Variable '%s' not declared", print_node->ident);
+        }
+        print_node->type = ident_node->type;
+        print_node->offset = ident_node->offset;
+        print_node->decl_node = ident_node;
+        print_node->global_decl = ident_node->global_decl;
+    }
+}
+```
+
+**Raisonnement :** Les parametres de `print` peuvent etre des chaines ou des identificateurs. Pour les identificateurs, on verifie qu'ils sont declares et on decore le noeud comme pour les autres utilisations de variables.
 
 ---
 
@@ -365,14 +550,33 @@ Nous utilisons les fonctions fournies par la bibliotheque `miniccutils` :
 - `test_lex.c` : Verification des tokens lexicaux
 - `test_yacc.c` : Verification de la construction de l'AST (code du TD)
 
-### 6.2 Tests syntaxiques KO
+### 6.2 Tests de verification KO (Tests/Verif/KO/)
 
 - `test_passe1_111.c` : Variable deja declaree (regle 1.11)
-- `test_passe1_113.c` : Variable non declaree (regle 1.13 - a implementer)
+- `test_passe1_113.c` : Variable non declaree (regle 1.61)
 - `test_passe1_12_exp.c` : Expression dans initialisation globale (regle 1.12)
 - `test_passe1_14.c` : Nom de fonction != "main" (regle 1.5)
 - `test_passe1_14_int.c` : Type de retour de main != void (regle 1.5)
 - `test_passe1_void.c` : Variable de type void (regle 1.8)
+
+### 6.3 Regles de typage verifiees
+
+La passe 1 verifie maintenant l'ensemble des regles de typage :
+
+| Regle | Description | Implementation |
+|-------|-------------|----------------|
+| 1.8   | Variables ne peuvent pas etre de type void | `decl_list()` |
+| 1.11  | Double declaration interdite | `decl_list()` |
+| 1.12  | Initialisation globale = litteraux uniquement | `decl_list()` |
+| 1.13  | Compatibilite type initialisation | `decl_list()` |
+| 1.18  | Condition if doit etre bool | `instr_processing()` |
+| 1.20  | Condition while doit etre bool | `instr_processing()` |
+| 1.21  | Condition for doit etre bool | `instr_processing()` |
+| 1.22  | Condition do-while doit etre bool | `instr_processing()` |
+| 1.30  | Types operateurs binaires | `expr_processing()` |
+| 1.31  | Types operateurs unaires | `expr_processing()` |
+| 1.32  | Affectation : lvalue + compatibilite | `expr_processing()` |
+| 1.61  | Variable doit etre declaree | `expr_processing()` |
 
 ---
 
@@ -386,26 +590,33 @@ Nous utilisons les fonctions fournies par la bibliotheque `miniccutils` :
 | Analyse syntaxique      | Complet | AST conforme a la grammaire                           |
 | Arguments CLI           | Complet | Toutes les options supportees                         |
 | Liberation memoire      | Complet | Pas de fuites memoire                                 |
-| Passe 1 - Declarations  | Partiel | Declarations globales et locales                      |
+| Passe 1 - Declarations  | Complet | Declarations globales et locales                      |
 | Passe 1 - Fonction main | Complet | Verifications nom et type                             |
-| Passe 1 - Expressions   | A faire | Verification de types, resolution des identificateurs |
-| Passe 1 - Instructions  | A faire | Verification des conditions booleennes                |
+| Passe 1 - Expressions   | Complet | Verification de types, resolution des identificateurs |
+| Passe 1 - Instructions  | Complet | Verification des conditions booleennes                |
+| Passe 1 - Print         | Complet | Verification des parametres de print                  |
 | Passe 2                 | A faire | Generation de code MIPS                               |
 
-### 7.2 Travaux restants pour la Passe 1
+### 7.2 Resume de la Passe 1
 
-1. **Traitement des expressions** :
-   - Verification des types pour les operateurs
-   - Resolution des identificateurs (liaison avec `decl_node`)
-   - Verification de compatibilite pour les affectations
+La passe 1 est desormais complete. Elle effectue :
 
-2. **Traitement des instructions** :
-   - Verification que les conditions (if, while, for, do-while) sont de type boolean
+1. **Gestion des declarations** :
+   - Ajout des variables a l'environnement avec `env_add_element()`
+   - Verification des regles 1.8, 1.11, 1.12, 1.13
+
+2. **Traitement des expressions** :
+   - Verification des types pour tous les operateurs (regles 1.30, 1.31)
+   - Resolution des identificateurs avec liaison vers `decl_node` (regle 1.61)
+   - Verification de compatibilite pour les affectations (regle 1.32)
+
+3. **Traitement des instructions** :
+   - Verification que les conditions (if, while, for, do-while) sont de type bool (regles 1.18-1.22)
    - Traitement recursif des blocs imbriques
 
-3. **Decoration de l'arbre** :
-   - Mise a jour du champ `type` pour les noeuds d'expression
-   - Mise a jour du champ `decl_node` pour les NODE_IDENT d'utilisation
+4. **Decoration de l'arbre** :
+   - Mise a jour du champ `type` pour tous les noeuds d'expression
+   - Mise a jour des champs `decl_node`, `offset`, `global_decl` pour les NODE_IDENT
 
 ### 7.3 Travaux pour la Passe 2
 
@@ -416,3 +627,11 @@ Nous utilisons les fonctions fournies par la bibliotheque `miniccutils` :
 5. Generation de l'epilogue et appel systeme exit
 
 ---
+
+## Conclusion
+
+Ce projet nous a permis d'apprehender concretement les differentes etapes de la compilation. La demarche incrementale - d'abord le lexer, puis le parser, puis les verifications semantiques - s'est averee efficace pour deboguer progressivement chaque composant. L'utilisation des outils de visualisation (xdot pour les arbres, Valgrind pour la memoire) a ete precieuse pour valider notre implementation.
+
+Les choix de conception ont ete guides par la specification et par un souci de clarte du code. La passe 1 est maintenant complete : toutes les verifications contextuelles sont implementees (declarations, types des expressions, conditions des structures de controle) et l'arbre est entierement decore avec les informations necessaires pour la generation de code.
+
+Il reste a implementer la passe 2 (generation de code MIPS) pour finaliser le compilateur.
