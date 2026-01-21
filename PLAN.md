@@ -7,12 +7,12 @@ Implementation of command-line argument parsing and AST memory management for th
 
 ## Status Summary
 
-| Task | Status |
-|------|--------|
-| `parse_args()` implementation | Done |
-| `free_nodes()` implementation | Done |
-| Build verification | Done |
-| Testing | Done (46/46 tests pass) |
+| Task                                  | Status  |
+| ------------------------------------- | ------- |
+| `parse_args()` implementation         | Done    |
+| `free_nodes()` implementation         | Done    |
+| Test command-line options             | Done    |
+| Test `free_nodes()` memory management | Pending |
 
 ---
 
@@ -24,15 +24,15 @@ Implementation of command-line argument parsing and AST memory management for th
 
 **Implemented features:**
 
-| Flag | Argument | Description | Default |
-|------|----------|-------------|---------|
-| `-b` | none | Display banner (compiler name + team members) | - |
-| `-o` | `<filename>` | Output assembly file | `out.s` |
-| `-t` | `<int>` | Trace level (0-5) | 0 |
-| `-r` | `<int>` | Max registers (4-8) | 8 |
-| `-s` | none | Stop after syntax analysis | false |
-| `-v` | none | Stop after verification (passe_1) | false |
-| `-h` | none | Display help message | - |
+| Flag | Argument     | Description                                   | Default |
+| ---- | ------------ | --------------------------------------------- | ------- |
+| `-b` | none         | Display banner (compiler name + team members) | -       |
+| `-o` | `<filename>` | Output assembly file                          | `out.s` |
+| `-t` | `<int>`      | Trace level (0-5)                             | 0       |
+| `-r` | `<int>`      | Max registers (4-8)                           | 8       |
+| `-s` | none         | Stop after syntax analysis                    | false   |
+| `-v` | none         | Stop after verification (passe_1)             | false   |
+| `-h` | none         | Display help message                          | -       |
 
 **Validation rules implemented:**
 - `-s` and `-v` are mutually exclusive (error if both used)
@@ -87,9 +87,70 @@ make
 ./minicc -v test.c       # Stop after verification
 ```
 
-### 3. Memory Leak Testing (Optional)
+### 3. Test `free_nodes()` Memory Management
+
+#### 3.1 Create a test file
+Create `test_free.c` with various AST node types:
+```c
+int main() {
+    int x;
+    int y;
+    bool flag;
+    x = 10;
+    y = x + 5;
+    if (x > 0) {
+        print(y);
+    }
+    while (flag) {
+        x = x - 1;
+    }
+}
+```
+
+#### 3.2 Run with Valgrind (Linux/WSL)
 ```bash
-valgrind --leak-check=full ./minicc test.c
+valgrind --leak-check=full --show-leak-kinds=all ./minicc test_free.c
+```
+
+**Expected output:**
+```
+==XXXXX== HEAP SUMMARY:
+==XXXXX==     All heap blocks were freed -- no leaks are possible
+```
+
+#### 3.3 Verify `free_nodes()` is called
+Check that `free_nodes(root)` is called at the end of compilation in `main()` or the grammar file. If not present, add it before program exit.
+
+#### 3.4 Test edge cases
+```bash
+# Empty program (minimal AST)
+echo "int main() {}" > empty.c
+valgrind ./minicc empty.c
+
+# Program with strings
+echo 'int main() { print("hello"); }' > strings.c
+valgrind ./minicc strings.c
+
+# Deeply nested expressions
+echo "int main() { int x; x = 1+2+3+4+5+6+7+8+9+10; }" > nested.c
+valgrind ./minicc nested.c
+```
+
+#### 3.5 Manual verification checklist
+- [ ] `free_nodes()` handles NULL input gracefully
+- [ ] All child nodes are freed before parent
+- [ ] `opr` array is freed after children
+- [ ] `ident` string is freed if not NULL
+- [ ] `str` string is freed if not NULL
+- [ ] No double-free errors
+- [ ] No use-after-free errors
+
+### 4. Memory Leak Summary (Optional - AddressSanitizer)
+Compile with AddressSanitizer for additional checks:
+```bash
+make clean
+CFLAGS="-fsanitize=address -g" make
+./minicc test_free.c
 ```
 
 ---
@@ -102,16 +163,16 @@ valgrind --leak-check=full ./minicc test.c
 
 ### Expected Behavior
 
-| Command | Expected Output |
-|---------|-----------------|
-| `./minicc -h` | Usage message, exit 0 |
-| `./minicc -b` | Banner with team names, exit 0 |
-| `./minicc -s -v file.c` | Error message, exit 1 |
-| `./minicc -t 6 file.c` | Error: trace level out of range, exit 1 |
-| `./minicc -r 3 file.c` | Error: registers out of range, exit 1 |
-| `./minicc` | Error: input file required, exit 1 |
-| `./minicc file.c` | Compile file.c to out.s |
-| `./minicc -o test.s file.c` | Compile file.c to test.s |
+| Command                     | Expected Output                         |
+| --------------------------- | --------------------------------------- |
+| `./minicc -h`               | Usage message, exit 0                   |
+| `./minicc -b`               | Banner with team names, exit 0          |
+| `./minicc -s -v file.c`     | Error message, exit 1                   |
+| `./minicc -t 6 file.c`      | Error: trace level out of range, exit 1 |
+| `./minicc -r 3 file.c`      | Error: registers out of range, exit 1   |
+| `./minicc`                  | Error: input file required, exit 1      |
+| `./minicc file.c`           | Compile file.c to out.s                 |
+| `./minicc -o test.s file.c` | Compile file.c to test.s                |
 
 ### Code Quality
 - No memory leaks when `free_nodes()` is called on the AST
@@ -126,16 +187,16 @@ valgrind --leak-check=full ./minicc test.c
 - `common.c` - Added implementations for `parse_args()` and `free_nodes()`
 
 ### Functions Added
-| Function | Location | Purpose |
-|----------|----------|---------|
+| Function         | Location    | Purpose                 |
+| ---------------- | ----------- | ----------------------- |
 | `print_banner()` | common.c:24 | Display compiler banner |
-| `print_help()` | common.c:30 | Display usage help |
+| `print_help()`   | common.c:30 | Display usage help      |
 
 ### Functions Modified
-| Function | Location | Change |
-|----------|----------|--------|
-| `parse_args()` | common.c:42 | Full implementation with getopt |
-| `free_nodes()` | common.c:126 | Full recursive implementation |
+| Function       | Location     | Change                          |
+| -------------- | ------------ | ------------------------------- |
+| `parse_args()` | common.c:42  | Full implementation with getopt |
+| `free_nodes()` | common.c:126 | Full recursive implementation   |
 
 ---
 
