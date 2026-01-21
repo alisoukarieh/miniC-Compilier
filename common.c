@@ -139,38 +139,32 @@ void parse_args(int argc, char **argv)
     infile = argv[optind];
 }
 
-void free_nodes(node_t n)
-{
-    if (n == NULL)
-    {
-        return;
-    }
+#include <stdlib.h>
 
-    // Recursively free children
-    for (int i = 0; i < n->nops; i++)
-    {
-        free_nodes(n->opr[i]);
-    }
+    void free_nodes(node_t n) {
+        if (!n) return;
 
-    // Free the opr array
-    if (n->opr != NULL)
-    {
-        free(n->opr);
-    }
+        if (n->opr) {
+            for (int32_t i = 0; i < n->nops; i++) {
+                free_nodes(n->opr[i]);
+            }
+            free(n->opr);
+            n->opr = NULL;
+        }
 
-    // Free strings if allocated
-    if (n->ident != NULL)
-    {
-        free(n->ident);
-    }
-    if (n->str != NULL)
-    {
-        free(n->str);
-    }
+        if (n->ident) {
+            free(n->ident);
+            n->ident = NULL;
+        }
 
-    // Free the node itself
-    free(n);
-}
+        if (n->str) {
+            free(n->str);
+            n->str = NULL;
+        }
+
+
+        free(n);
+    }
 
 char *strdupl(char *s)
 {

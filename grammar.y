@@ -206,13 +206,6 @@ ident :
 
 /* A completer et/ou remplacer avec d'autres fonctions */
 
-static char* xstrdup(const char* s) {
-    size_t n = strlen(s) + 1;
-    char* r = malloc(n);
-    memcpy(r, s, n);
-    return r;
-}
-
 
 
 node_t make_node(node_nature nature, int nops, ...) {
@@ -252,7 +245,7 @@ node_t make_type(node_type t) {
 
 node_t make_ident(const char* s) {
     node_t n = make_node(NODE_IDENT, 0);
-    n->ident = xstrdup(s);
+    n->ident = (char*)s;
     return n;
 }
 
@@ -272,7 +265,7 @@ node_t make_bool(bool b) {
 
 node_t make_string(const char* s) {
     node_t n = make_node(NODE_STRINGVAL, 0);
-    n->str = xstrdup(s);
+    n->str =(char*) s;
     return n;
 }
 

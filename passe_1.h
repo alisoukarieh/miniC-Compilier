@@ -14,7 +14,8 @@ void instr_list_processing(node_t instr);
 void main_decl(node_t func_node);
 void expr_processing(node_t expr);
 void instr_processing(node_t instr);
-
+void print_list_processing(node_t print_node);
+void print_processing(node_t print_node);
 
 #endif
 
