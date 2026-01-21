@@ -250,7 +250,7 @@ void free_nodes(node_t n) {
 }
 ```
 
-**Raisonnement :** Une gestion correcte de la memoire est essentielle. Nous avons adopte une approche de parcours en profondeur post-ordre : on libere d'abord les enfants, puis le noeud courant. Les champs `ident` et `str` sont des chaines allouees dynamiquement qui doivent etre liberees separement.
+**Raisonnement :** On libere d'abord les enfants, puis le noeud courant. Les champs `ident` et `str` sont des chaines allouees dynamiquement qui doivent etre liberees separement.
 
 **Verification avec Valgrind :**
 
@@ -380,17 +380,17 @@ Nous utilisons les fonctions fournies par la bibliotheque `miniccutils` :
 
 ### 7.1 Fonctionnalites implementees
 
-| Composant | Etat | Description |
-|-----------|------|-------------|
-| Analyse lexicale | Complet | Tous les tokens reconnus |
-| Analyse syntaxique | Complet | AST conforme a la grammaire |
-| Arguments CLI | Complet | Toutes les options supportees |
-| Liberation memoire | Complet | Pas de fuites memoire |
-| Passe 1 - Declarations | Partiel | Declarations globales et locales |
-| Passe 1 - Fonction main | Complet | Verifications nom et type |
-| Passe 1 - Expressions | A faire | Verification de types, resolution des identificateurs |
-| Passe 1 - Instructions | A faire | Verification des conditions booleennes |
-| Passe 2 | A faire | Generation de code MIPS |
+| Composant               | Etat    | Description                                           |
+| ----------------------- | ------- | ----------------------------------------------------- |
+| Analyse lexicale        | Complet | Tous les tokens reconnus                              |
+| Analyse syntaxique      | Complet | AST conforme a la grammaire                           |
+| Arguments CLI           | Complet | Toutes les options supportees                         |
+| Liberation memoire      | Complet | Pas de fuites memoire                                 |
+| Passe 1 - Declarations  | Partiel | Declarations globales et locales                      |
+| Passe 1 - Fonction main | Complet | Verifications nom et type                             |
+| Passe 1 - Expressions   | A faire | Verification de types, resolution des identificateurs |
+| Passe 1 - Instructions  | A faire | Verification des conditions booleennes                |
+| Passe 2                 | A faire | Generation de code MIPS                               |
 
 ### 7.2 Travaux restants pour la Passe 1
 
@@ -416,9 +416,3 @@ Nous utilisons les fonctions fournies par la bibliotheque `miniccutils` :
 5. Generation de l'epilogue et appel systeme exit
 
 ---
-
-## Conclusion
-
-Ce projet nous a permis d'apprehender concretement les differentes etapes de la compilation. La demarche incrementale - d'abord le lexer, puis le parser, puis les verifications semantiques - s'est averee efficace pour deboguer progressivement chaque composant. L'utilisation des outils de visualisation (xdot pour les arbres, Valgrind pour la memoire) a ete precieuse pour valider notre implementation.
-
-Les choix de conception ont ete guides par la specification et par un souci de clarte du code. La passe 1 est partiellement implementee et la passe 2 reste a developper.
