@@ -636,7 +636,6 @@ static void gen_instr_list(node_t instr) {
 
 static void gen_if(node_t node) {
     int32_t label_else = get_new_label();
-    int32_t label_end = get_new_label();
 
     gen_expr(node->opr[0]);
     create_beq_inst(get_current_reg(), get_r0(), label_else);
@@ -644,14 +643,14 @@ static void gen_if(node_t node) {
     gen_instr(node->opr[1]);
 
     if (node->opr[2] != NULL) {
+        // Only allocate label_end when there's an else clause
+        int32_t label_end = get_new_label();
         create_j_inst(label_end);
-    }
-
-    create_label_inst(label_else);
-
-    if (node->opr[2] != NULL) {
+        create_label_inst(label_else);
         gen_instr(node->opr[2]);
         create_label_inst(label_end);
+    } else {
+        create_label_inst(label_else);
     }
 }
 
@@ -756,14 +755,19 @@ static void gen_text_section(node_t func) {
 
     // Prologue
     set_temporary_start_offset(func->offset);
-    create_addiu_inst(get_stack_reg(), get_stack_reg(), -func->offset);
+    create_stack_allocation_inst();
 
     if (func->opr[2] != NULL) {
         gen_block(func->opr[2]);
     }
 
-    // Epilogue
-    create_addiu_inst(get_stack_reg(), get_stack_reg(), func->offset);
+    // Epilogue - also updates the allocation instruction with correct size
+    // Use max of local vars (func->offset) and temporaries (get_temporary_max_offset())
+    int32_t stack_size = get_temporary_max_offset();
+    if (func->offset > stack_size) {
+        stack_size = func->offset;
+    }
+    create_stack_deallocation_inst(stack_size);
     create_ori_inst(2, get_r0(), 0xa);
     create_syscall_inst();
 }
