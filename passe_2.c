@@ -10,10 +10,11 @@
 
 extern int trace_level;
 
-
-// Pre-pass to collect string literals
+// collect strings
 static void collect_strings(node_t node) {
-    if (node == NULL) return;
+    if (node == NULL) {
+        return;
+    }
 
     if (node->nature == NODE_STRINGVAL) {
         node->offset = add_string(node->str);
@@ -25,10 +26,11 @@ static void collect_strings(node_t node) {
     }
 }
 
-
-// Data section generation
+// global declarations
 static void gen_global_decls(node_t decls) {
-    if (decls == NULL) return;
+    if (decls == NULL) {
+        return;
+    }
 
     switch (decls->nature) {
         case NODE_LIST:
@@ -71,21 +73,23 @@ static void gen_data_section(node_t root) {
 }
 
 
-// Expression generation
+// expression generation
 static void gen_expr(node_t expr) {
-    if (expr == NULL) return;
+    if (expr == NULL) {
+        return;
+    }
 
     int32_t reg, reg_left, reg_right;
+    bool spilled;
 
     switch (expr->nature) {
+
         case NODE_INTVAL:
         case NODE_BOOLVAL:
             reg = get_current_reg();
             if (expr->value >= 0 && expr->value <= 0xFFFF) {
-                // Small positive value: single ori instruction
                 create_ori_inst(reg, get_r0(), (int32_t)(expr->value & 0xFFFF));
             } else {
-                // Full 32-bit value: lui + ori
                 create_lui_inst(reg, (int32_t)((expr->value >> 16) & 0xFFFF));
                 create_ori_inst(reg, reg, (int32_t)(expr->value & 0xFFFF));
             }
@@ -123,10 +127,10 @@ static void gen_expr(node_t expr) {
             break;
         }
 
-        case NODE_PLUS: {
+        case NODE_PLUS:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -141,12 +145,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_MINUS: {
+        case NODE_MINUS:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -161,12 +164,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_MUL: {
+        case NODE_MUL:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -183,12 +185,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_DIV: {
+        case NODE_DIV:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -207,12 +208,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_MOD: {
+        case NODE_MOD:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -231,12 +231,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_LT: {
+        case NODE_LT:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -251,12 +250,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_GT: {
+        case NODE_GT:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -271,12 +269,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_LE: {
+        case NODE_LE:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -293,12 +290,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_GE: {
+        case NODE_GE:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -315,12 +311,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_EQ: {
+        case NODE_EQ:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -337,12 +332,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_NE: {
+        case NODE_NE:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -359,12 +353,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_AND: {
+        case NODE_AND:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -379,12 +372,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_OR: {
+        case NODE_OR:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -399,7 +391,6 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
         case NODE_NOT:
             gen_expr(expr->opr[0]);
@@ -407,10 +398,10 @@ static void gen_expr(node_t expr) {
             create_xori_inst(reg, reg, 1);
             break;
 
-        case NODE_BAND: {
+        case NODE_BAND:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -425,12 +416,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_BOR: {
+        case NODE_BOR:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -445,12 +435,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_BXOR: {
+        case NODE_BXOR:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -465,7 +454,6 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
         case NODE_BNOT:
             gen_expr(expr->opr[0]);
@@ -473,10 +461,10 @@ static void gen_expr(node_t expr) {
             create_nor_inst(reg, get_r0(), reg);
             break;
 
-        case NODE_SLL: {
+        case NODE_SLL:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -491,12 +479,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_SRA: {
+        case NODE_SRA:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -511,12 +498,11 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
-        case NODE_SRL: {
+        case NODE_SRL:
             gen_expr(expr->opr[0]);
             reg_left = get_current_reg();
-            bool spilled = !reg_available();
+            spilled = !reg_available();
             if (spilled) {
                 push_temporary(reg_left);
             }
@@ -531,7 +517,6 @@ static void gen_expr(node_t expr) {
                 release_reg();
             }
             break;
-        }
 
         case NODE_UMINUS:
             gen_expr(expr->opr[0]);
@@ -545,9 +530,11 @@ static void gen_expr(node_t expr) {
 }
 
 
-// Print generation
+// print
 static void gen_print_item(node_t item) {
-    if (item == NULL) return;
+    if (item == NULL) {
+        return;
+    }
 
     if (item->nature == NODE_STRINGVAL) {
         create_lui_inst(4, 0x1001);
@@ -573,7 +560,9 @@ static void gen_print_item(node_t item) {
 }
 
 static void gen_print_list(node_t list) {
-    if (list == NULL) return;
+    if (list == NULL) {
+        return;
+    }
 
     if (list->nature == NODE_LIST) {
         gen_print_list(list->opr[0]);
@@ -588,7 +577,7 @@ static void gen_print(node_t node) {
 }
 
 
-// Control flow generation
+// control flow
 static void gen_if(node_t node);
 static void gen_while(node_t node);
 static void gen_for(node_t node);
@@ -596,7 +585,9 @@ static void gen_dowhile(node_t node);
 static void gen_block(node_t block);
 
 static void gen_instr(node_t instr) {
-    if (instr == NULL) return;
+    if (instr == NULL) {
+        return;
+    }
 
     switch (instr->nature) {
         case NODE_IF:
@@ -624,7 +615,9 @@ static void gen_instr(node_t instr) {
 }
 
 static void gen_instr_list(node_t instr) {
-    if (instr == NULL) return;
+    if (instr == NULL) {
+        return;
+    }
 
     if (instr->nature == NODE_LIST) {
         gen_instr_list(instr->opr[0]);
@@ -643,7 +636,6 @@ static void gen_if(node_t node) {
     gen_instr(node->opr[1]);
 
     if (node->opr[2] != NULL) {
-        // Only allocate label_end when there's an else clause
         int32_t label_end = get_new_label();
         create_j_inst(label_end);
         create_label_inst(label_else);
@@ -705,9 +697,11 @@ static void gen_dowhile(node_t node) {
 }
 
 
-// Block and local declarations
+// local declarations
 static void gen_local_decls(node_t decls) {
-    if (decls == NULL) return;
+    if (decls == NULL) {
+        return;
+    }
 
     switch (decls->nature) {
         case NODE_LIST:
@@ -736,7 +730,9 @@ static void gen_local_decls(node_t decls) {
 }
 
 static void gen_block(node_t block) {
-    if (block == NULL) return;
+    if (block == NULL) {
+        return;
+    }
 
     if (block->opr[0] != NULL) {
         gen_local_decls(block->opr[0]);
@@ -748,12 +744,11 @@ static void gen_block(node_t block) {
 }
 
 
-// Text section generation
+// text section
 static void gen_text_section(node_t func) {
     create_text_sec_inst();
     create_label_str_inst("main");
 
-    // Prologue
     set_temporary_start_offset(func->offset);
     create_stack_allocation_inst();
 
@@ -761,8 +756,6 @@ static void gen_text_section(node_t func) {
         gen_block(func->opr[2]);
     }
 
-    // Epilogue - also updates the allocation instruction with correct size
-    // Use max of local vars (func->offset) and temporaries (get_temporary_max_offset())
     int32_t stack_size = get_temporary_max_offset();
     if (func->offset > stack_size) {
         stack_size = func->offset;
@@ -773,7 +766,7 @@ static void gen_text_section(node_t func) {
 }
 
 
-// Main entry point
+// main entry point
 void gen_code_passe_2(node_t root) {
     collect_strings(root);
 
