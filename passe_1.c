@@ -364,7 +364,7 @@ void instr_processing(node_t instr){
         expr_processing(left);
 
         if (left->type != TYPE_BOOL) {
-            error_rule(left, "1.18", "Expression in if statement must be of type bool");
+            error_rule(left, "1.18", "Condition in if statement must be of type bool");
         }
 
         instr_processing(right);
@@ -381,7 +381,7 @@ void instr_processing(node_t instr){
 
         expr_processing(left);
         if (left->type != TYPE_BOOL) {
-            error_rule(left, "1.20", "Expression in while statement must be of type bool");
+            error_rule(left, "1.20", "Condition in while statement must be of type bool");
         }
         instr_processing(right);
 
@@ -413,7 +413,7 @@ void instr_processing(node_t instr){
         expr_list_processing(right);
 
         if (right->type != TYPE_BOOL) {
-            error_rule(right, "1.22", "Expression in do-while statement must be of type bool");
+            error_rule(right, "1.22", "Condition in do-while statement must be of type bool");
         }
 
         instr_processing(left);
