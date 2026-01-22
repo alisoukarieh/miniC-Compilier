@@ -1,11 +1,9 @@
 
 int z,y,x;
 int j;
-bool u = 12 ;
+bool u = true;
 
-
-
- void main () {
+ void  mainf() {
  int a = 120 , b = 80;
  if ( a > b ) {
  a = a - b ;

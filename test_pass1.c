@@ -5,10 +5,11 @@ bool u = true;
 
 
  void main () {
- int a = 120 , b = 80;
-int i;
-bool c = a < b;
+//  int a = 120 , b = 80;
+// int i;
+// bool c = a < b;
 
+if (!j) {;}
 
 //  if ( a > b ) a + b;
 
@@ -19,7 +20,7 @@ bool c = a < b;
 //    a = a - 1 ;
 // } while ( a > b ) ;
 
- print ( " a = " , a , " - b = " , b );
+//  print ( " a = " , a , " - b = " , b );
 
 //  while (a<b)
 //  {
