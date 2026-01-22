@@ -14,8 +14,9 @@
 3. [Analyse Syntaxique (grammar.y)](#3-analyse-syntaxique-grammary)
 4. [Fonctions Utilitaires (common.c)](#4-fonctions-utilitaires-commonc)
 5. [Passe 1 - Verifications Contextuelles](#5-passe-1---verifications-contextuelles)
-6. [Tests Realises](#6-tests-realises)
-7. [Etat d'Avancement et Travaux Futurs](#7-etat-davancement-et-travaux-futurs)
+6. [Passe 2 - Generation de Code MIPS](#6-passe-2---generation-de-code-mips)
+7. [Tests Realises](#7-tests-realises)
+8. [Conclusion](#8-conclusion)
 
 ---
 
@@ -27,7 +28,7 @@ Notre approche de developpement a suivi l'ordre naturel du processus de compilat
 1. Analyse lexicale (tokenisation)
 2. Analyse syntaxique (construction de l'AST)
 3. Analyse semantique (verifications contextuelles - Passe 1)
-4. Generation de code (Passe 2 - a completer)
+4. Generation de code (Passe 2)
 
 ---
 
@@ -543,14 +544,232 @@ void print_processing(node_t print_node){
 
 ---
 
-## 6. Tests Realises
+## 6. Passe 2 - Generation de Code MIPS
 
-### 6.1 Tests syntaxiques OK
+### 6.1 Architecture de la passe 2
+
+La passe 2 genere le code assembleur MIPS a partir de l'AST decore. Notre implementation dans `passe_2.c` suit la structure suivante :
+
+```c
+void gen_code_passe_2(node_t root) {
+    collect_strings(root);
+
+    set_max_registers(get_num_registers());
+    reset_temporary_max_offset();
+
+    gen_data_section(root);
+
+    if (root->opr[1] != NULL) {
+        gen_text_section(root->opr[1]);
+    }
+}
+```
+
+### 6.2 Probleme initial : allocation de registres
+
+Notre premiere implementation de la generation de code utilisait une approche naive pour l'allocation de registres. Nous appelions `allocate_reg()` dans les noeuds feuilles (NODE_INTVAL, NODE_BOOLVAL, NODE_IDENT), ce qui produisait des numeros de registres decales par rapport au compilateur de reference.
+
+**Exemple du probleme :**
+```
+Notre sortie:     ori $9, $0, 42
+Reference:        ori $8, $0, 42
+```
+
+Apres analyse, nous avons decouvert que la fonction `get_current_reg()` de la bibliotheque retourne le registre "courant" (initialement $8), et que `allocate_reg()` avance le compteur vers le registre suivant.
+
+### 6.3 Solution : pattern correct d'allocation
+
+La solution est decrite dans le PDF de specification. Le pattern correct est :
+
+**Pour les noeuds feuilles :**
+- Utiliser directement `get_current_reg()` pour obtenir le registre
+- Ne PAS appeler `allocate_reg()` - c'est l'appelant qui gere l'allocation
+
+**Pour les operations binaires :**
+```c
+gen_expr(expr->opr[0]);           // Resultat dans get_current_reg()
+reg_left = get_current_reg();     // Sauvegarder le registre
+spilled = !reg_available();       // Verifier si spilling necessaire
+if (spilled) {
+    push_temporary(reg_left);     // Sauvegarder sur la pile
+}
+allocate_reg();                   // Reserver un registre pour l'operande droit
+gen_expr(expr->opr[1]);           // Resultat dans get_current_reg()
+reg_right = get_current_reg();
+// ... effectuer l'operation ...
+release_reg();                    // Liberer le registre de l'operande droit
+```
+
+Apres avoir applique ce pattern, notre sortie correspond exactement a celle du compilateur de reference.
+
+### 6.4 Generation de la section .data
+
+```c
+static void gen_data_section(node_t root) {
+    create_data_sec_inst();
+
+    if (root->opr[0] != NULL) {
+        gen_global_decls(root->opr[0]);
+    }
+
+    int32_t num_strings = get_global_strings_number();
+    for (int32_t i = 0; i < num_strings; i++) {
+        create_asciiz_inst(NULL, get_global_string(i));
+    }
+}
+```
+
+La section .data contient :
+- Les variables globales (avec leur valeur initiale ou 0)
+- Les chaines de caracteres collectees dans l'arbre
+
+### 6.5 Generation des expressions
+
+Chaque type d'expression est traite dans un switch :
+
+**Litteraux entiers et booleens :**
+```c
+case NODE_INTVAL:
+case NODE_BOOLVAL:
+    reg = get_current_reg();
+    if (expr->value >= 0 && expr->value <= 0xFFFF) {
+        create_ori_inst(reg, get_r0(), (int32_t)(expr->value & 0xFFFF));
+    } else {
+        create_lui_inst(reg, (int32_t)((expr->value >> 16) & 0xFFFF));
+        create_ori_inst(reg, reg, (int32_t)(expr->value & 0xFFFF));
+    }
+    break;
+```
+
+**Chargement de variables :**
+```c
+case NODE_IDENT:
+    if (decl != NULL && decl->global_decl) {
+        create_lui_inst(reg, 0x1001);
+        create_lw_inst(reg, decl->offset, reg);
+    } else {
+        create_lw_inst(reg, expr->offset, get_stack_reg());
+    }
+    break;
+```
+
+### 6.6 Gestion du spilling de registres
+
+Quand tous les registres temporaires sont utilises, on sauvegarde sur la pile :
+
+```c
+case NODE_PLUS:
+    gen_expr(expr->opr[0]);
+    reg_left = get_current_reg();
+    spilled = !reg_available();
+    if (spilled) {
+        push_temporary(reg_left);
+    }
+    allocate_reg();
+    gen_expr(expr->opr[1]);
+    reg_right = get_current_reg();
+    if (spilled) {
+        pop_temporary(get_restore_reg());
+        create_addu_inst(reg_right, get_restore_reg(), reg_right);
+    } else {
+        create_addu_inst(reg_left, reg_left, reg_right);
+        release_reg();
+    }
+    break;
+```
+
+### 6.7 Structures de controle
+
+**Instruction IF :**
+```c
+static void gen_if(node_t node) {
+    int32_t label_else = get_new_label();
+
+    gen_expr(node->opr[0]);
+    create_beq_inst(get_current_reg(), get_r0(), label_else);
+
+    gen_instr(node->opr[1]);
+
+    if (node->opr[2] != NULL) {
+        int32_t label_end = get_new_label();
+        create_j_inst(label_end);
+        create_label_inst(label_else);
+        gen_instr(node->opr[2]);
+        create_label_inst(label_end);
+    } else {
+        create_label_inst(label_else);
+    }
+}
+```
+
+**Instruction WHILE :**
+```c
+static void gen_while(node_t node) {
+    int32_t label_start = get_new_label();
+    int32_t label_end = get_new_label();
+
+    create_label_inst(label_start);
+    gen_expr(node->opr[0]);
+    create_beq_inst(get_current_reg(), get_r0(), label_end);
+    gen_instr(node->opr[1]);
+    create_j_inst(label_start);
+    create_label_inst(label_end);
+}
+```
+
+### 6.8 Gestion de la pile
+
+Nous utilisons les fonctions de la bibliotheque pour gerer la pile :
+
+```c
+static void gen_text_section(node_t func) {
+    create_text_sec_inst();
+    create_label_str_inst("main");
+
+    set_temporary_start_offset(func->offset);
+    create_stack_allocation_inst();
+
+    if (func->opr[2] != NULL) {
+        gen_block(func->opr[2]);
+    }
+
+    int32_t stack_size = get_temporary_max_offset();
+    if (func->offset > stack_size) {
+        stack_size = func->offset;
+    }
+    create_stack_deallocation_inst(stack_size);
+    create_ori_inst(2, get_r0(), 0xa);
+    create_syscall_inst();
+}
+```
+
+### 6.9 Division par zero
+
+Pour les operations DIV et MOD, nous ajoutons une verification :
+```c
+create_div_inst(reg_left, reg_right);
+create_teq_inst(reg_right, get_r0());  // Trap si diviseur = 0
+create_mflo_inst(reg_left);            // ou mfhi pour MOD
+```
+
+### 6.10 Resultats des tests
+
+| Categorie | Resultat |
+|-----------|----------|
+| Tests OK (generation) | 14/14 pass |
+| Tests KO (division par zero) | 3/3 pass |
+| **Total** | **17/17 pass** |
+
+---
+
+## 7. Tests Realises
+
+### 7.1 Tests syntaxiques OK
 
 - `test_lex.c` : Verification des tokens lexicaux
 - `test_yacc.c` : Verification de la construction de l'AST (code du TD)
 
-### 6.2 Tests de verification KO (Tests/Verif/KO/)
+### 7.2 Tests de verification KO (Tests/Verif/KO/)
 
 - `test_passe1_111.c` : Variable deja declaree (regle 1.11)
 - `test_passe1_113.c` : Variable non declaree (regle 1.61)
@@ -559,7 +778,7 @@ void print_processing(node_t print_node){
 - `test_passe1_14_int.c` : Type de retour de main != void (regle 1.5)
 - `test_passe1_void.c` : Variable de type void (regle 1.8)
 
-### 6.3 Regles de typage verifiees
+### 7.3 Regles de typage verifiees
 
 La passe 1 verifie maintenant l'ensemble des regles de typage :
 
@@ -580,9 +799,9 @@ La passe 1 verifie maintenant l'ensemble des regles de typage :
 
 ---
 
-## 7. Etat d'Avancement et Travaux Futurs
+## 8. Conclusion
 
-### 7.1 Fonctionnalites implementees
+### 8.1 Fonctionnalites implementees
 
 | Composant               | Etat    | Description                                           |
 | ----------------------- | ------- | ----------------------------------------------------- |
@@ -595,43 +814,20 @@ La passe 1 verifie maintenant l'ensemble des regles de typage :
 | Passe 1 - Expressions   | Complet | Verification de types, resolution des identificateurs |
 | Passe 1 - Instructions  | Complet | Verification des conditions booleennes                |
 | Passe 1 - Print         | Complet | Verification des parametres de print                  |
-| Passe 2                 | A faire | Generation de code MIPS                               |
+| Passe 2 - Generation    | Complet | Generation de code MIPS                               |
 
-### 7.2 Resume de la Passe 1
+### 8.2 Bilan du projet
 
-La passe 1 est desormais complete. Elle effectue :
+Ce projet nous a permis d'apprehender concretement les differentes etapes de la compilation. La demarche incrementale - d'abord le lexer, puis le parser, puis les verifications semantiques, et enfin la generation de code - s'est averee efficace pour deboguer progressivement chaque composant.
 
-1. **Gestion des declarations** :
-   - Ajout des variables a l'environnement avec `env_add_element()`
-   - Verification des regles 1.8, 1.11, 1.12, 1.13
+**Passe 1 :** Toutes les verifications contextuelles sont implementees (declarations, types des expressions, conditions des structures de controle) et l'arbre est entierement decore avec les informations necessaires pour la generation de code.
 
-2. **Traitement des expressions** :
-   - Verification des types pour tous les operateurs (regles 1.30, 1.31)
-   - Resolution des identificateurs avec liaison vers `decl_node` (regle 1.61)
-   - Verification de compatibilite pour les affectations (regle 1.32)
+**Passe 2 :** La generation de code MIPS est complete. Une difficulte importante a ete l'allocation des registres : notre premiere implementation produisait des numeros de registres decales par rapport au compilateur de reference ($9 au lieu de $8). Apres avoir etudie le fonctionnement des fonctions de la bibliotheque (`get_current_reg()`, `allocate_reg()`, `release_reg()`), nous avons compris que les noeuds feuilles ne doivent pas appeler `allocate_reg()` - c'est l'appelant qui gere l'allocation. En appliquant le pattern decrit dans le PDF, notre sortie correspond maintenant exactement a celle du compilateur de reference.
 
-3. **Traitement des instructions** :
-   - Verification que les conditions (if, while, for, do-while) sont de type bool (regles 1.18-1.22)
-   - Traitement recursif des blocs imbriques
+L'utilisation des outils de visualisation (xdot pour les arbres, Valgrind pour la memoire) et la comparaison avec le compilateur de reference ont ete precieuses pour valider notre implementation.
 
-4. **Decoration de l'arbre** :
-   - Mise a jour du champ `type` pour tous les noeuds d'expression
-   - Mise a jour des champs `decl_node`, `offset`, `global_decl` pour les NODE_IDENT
+### 8.3 Resultats finaux
 
-### 7.3 Travaux pour la Passe 2
-
-1. Generation de la section `.data` (variables globales, chaines)
-2. Generation du prologue de la fonction main
-3. Generation du code pour les expressions
-4. Generation du code pour les structures de controle
-5. Generation de l'epilogue et appel systeme exit
-
----
-
-## Conclusion
-
-Ce projet nous a permis d'apprehender concretement les differentes etapes de la compilation. La demarche incrementale - d'abord le lexer, puis le parser, puis les verifications semantiques - s'est averee efficace pour deboguer progressivement chaque composant. L'utilisation des outils de visualisation (xdot pour les arbres, Valgrind pour la memoire) a ete precieuse pour valider notre implementation.
-
-Les choix de conception ont ete guides par la specification et par un souci de clarte du code. La passe 1 est maintenant complete : toutes les verifications contextuelles sont implementees (declarations, types des expressions, conditions des structures de controle) et l'arbre est entierement decore avec les informations necessaires pour la generation de code.
-
-Il reste a implementer la passe 2 (generation de code MIPS) pour finaliser le compilateur.
+Le compilateur MiniC est maintenant fonctionnel et passe tous les tests :
+- **Tests de verification (Passe 1)** : Tous les tests OK et KO passent
+- **Tests de generation (Passe 2)** : 17/17 tests passent avec sortie identique a la reference
