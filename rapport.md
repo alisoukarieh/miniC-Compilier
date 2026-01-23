@@ -686,13 +686,13 @@ Nous avons écrit 57 tests pour valider notre compilateur. Les tests fournis ini
 
 **Tests KO (erreurs de syntaxe) :**
 
-| Fichier | Description |
-|---------|-------------|
+| Fichier     | Description                    |
+| ----------- | ------------------------------ |
 | test_nok1.c | Déclaration sans point-virgule |
-| test_nok2.c | Parenthèse manquante |
-| test_nok3.c | Accolade manquante |
-| test_nok4.c | Mot-clé mal orthographié |
-| test_nok5.c | Expression mal formée |
+| test_nok2.c | Parenthèse manquante           |
+| test_nok3.c | Accolade manquante             |
+| test_nok4.c | Mot-clé mal orthographié       |
+| test_nok5.c | Expression mal formée          |
 
 ### 7.2 Tests Verif - Passe 1 (Tests/Verif/)
 
@@ -700,56 +700,56 @@ Nous avons écrit 57 tests pour valider notre compilateur. Les tests fournis ini
 
 **Tests KO (20 tests) :**
 
-| Fichier | Regle | Description |
-|---------|-------|-------------|
-| test-ko1-main-misnamed | 1.4 | Fonction principale mal nommée |
-| test-ko2-main-not-void | 1.4 | Type de retour de main != void |
-| test-ko3-void-var | 1.8 | Variable de type void |
-| test-ko4-double-decl | 1.11 | Double déclaration |
-| test-ko5-undecl-var | 1.61 | Variable non déclarée |
-| test-ko6-if-cond-not-bool | 1.18 | Condition if non booléenne |
-| test-ko7-while-cond-not-bool | 1.20 | Condition while non booléenne |
-| test-ko8-for-cond-not-bool | 1.21 | Condition for non booléenne |
-| test-ko9-dowhile-cond-not-bool | 1.22 | Condition do-while non booléenne |
-| test-ko10-assign-typemismatched | 1.32 | Types incompatibles dans affectation |
-| test-ko11-arith-with-bool | 1.30 | Opérateur arithmétique avec bool |
-| test-ko12-logic-with-int | 1.30 | Opérateur logique avec int |
-| test-ko13-bitwise-bool | 1.30 | Opérateur bit-à-bit avec bool |
-| test-ko14-not-with-int | 1.31 | NOT logique avec int |
-| test-ko15-bnot-with-bool | 1.31 | NOT bit-à-bit avec bool |
-| test-ko16-==-bool-and-int | 1.30 | Comparaison bool/int |
-| test-ko17-init-local-not-same-type | 1.13 | Init locale type incompatible |
-| test-ko18-init-glob-expr | 1.12 | Init globale avec expression |
-| test-ko19-init-glob-not-same-type | 1.12 | Init globale type incompatible |
-| test-ko20-double-decl-inner-block | 1.11 | Double déclaration dans bloc imbriqué |
+| Fichier                            | Regle | Description                           |
+| ---------------------------------- | ----- | ------------------------------------- |
+| test-ko1-main-misnamed             | 1.4   | Fonction principale mal nommée        |
+| test-ko2-main-not-void             | 1.4   | Type de retour de main != void        |
+| test-ko3-void-var                  | 1.8   | Variable de type void                 |
+| test-ko4-double-decl               | 1.11  | Double déclaration                    |
+| test-ko5-undecl-var                | 1.61  | Variable non déclarée                 |
+| test-ko6-if-cond-not-bool          | 1.18  | Condition if non booléenne            |
+| test-ko7-while-cond-not-bool       | 1.20  | Condition while non booléenne         |
+| test-ko8-for-cond-not-bool         | 1.21  | Condition for non booléenne           |
+| test-ko9-dowhile-cond-not-bool     | 1.22  | Condition do-while non booléenne      |
+| test-ko10-assign-typemismatched    | 1.32  | Types incompatibles dans affectation  |
+| test-ko11-arith-with-bool          | 1.30  | Opérateur arithmétique avec bool      |
+| test-ko12-logic-with-int           | 1.30  | Opérateur logique avec int            |
+| test-ko13-bitwise-bool             | 1.30  | Opérateur bit-à-bit avec bool         |
+| test-ko14-not-with-int             | 1.31  | NOT logique avec int                  |
+| test-ko15-bnot-with-bool           | 1.31  | NOT bit-à-bit avec bool               |
+| test-ko16-==-bool-and-int          | 1.30  | Comparaison bool/int                  |
+| test-ko17-init-local-not-same-type | 1.13  | Init locale type incompatible         |
+| test-ko18-init-glob-expr           | 1.12  | Init globale avec expression          |
+| test-ko19-init-glob-not-same-type  | 1.12  | Init globale type incompatible        |
+| test-ko20-double-decl-inner-block  | 1.11  | Double déclaration dans bloc imbriqué |
 
 ### 7.3 Tests Gencode - Passe 2 (Tests/Gencode/)
 
 **Tests OK (14 tests) :**
 
-| Fichier | Description |
-|---------|-------------|
-| test_gencode_01_simple | Affichage simple |
-| test_gencode_02_arithmetic | Operations +, -, *, /, % |
+| Fichier                    | Description                     |
+| -------------------------- | ------------------------------- |
+| test_gencode_01_simple     | Affichage simple                |
+| test_gencode_02_arithmetic | Operations +, -, *, /, %        |
 | test_gencode_03_comparison | Opérateurs <, >, <=, >=, ==, != |
-| test_gencode_04_logical | Opérateurs &&, \|\|, ! |
-| test_gencode_05_bitwise | Opérateurs &, \|, ^, ~, <<, >> |
-| test_gencode_06_if | Structure if simple |
-| test_gencode_07_ifelse | Structure if-else |
-| test_gencode_08_while | Boucle while |
-| test_gencode_09_for | Boucle for |
-| test_gencode_10_dowhile | Boucle do-while |
-| test_gencode_11_global | Variables globales |
-| test_gencode_12_nested | Blocs imbriqués |
-| test_gencode_13_unary | Opérateurs unaires |
-| test_gencode_14_assign | Affectations |
+| test_gencode_04_logical    | Opérateurs &&, \|\|, !          |
+| test_gencode_05_bitwise    | Opérateurs &, \|, ^, ~, <<, >>  |
+| test_gencode_06_if         | Structure if simple             |
+| test_gencode_07_ifelse     | Structure if-else               |
+| test_gencode_08_while      | Boucle while                    |
+| test_gencode_09_for        | Boucle for                      |
+| test_gencode_10_dowhile    | Boucle do-while                 |
+| test_gencode_11_global     | Variables globales              |
+| test_gencode_12_nested     | Blocs imbriqués                 |
+| test_gencode_13_unary      | Opérateurs unaires              |
+| test_gencode_14_assign     | Affectations                    |
 
 **Tests KO (3 tests - erreurs runtime) :**
 
-| Fichier | Description |
-|---------|-------------|
-| test_gencode_ko_01_divzero | Division par zéro |
-| test_gencode_ko_02_modzero | Modulo par zéro |
+| Fichier                         | Description                       |
+| ------------------------------- | --------------------------------- |
+| test_gencode_ko_01_divzero      | Division par zéro                 |
+| test_gencode_ko_02_modzero      | Modulo par zéro                   |
 | test_gencode_ko_03_divzero_expr | Division par zéro dans expression |
 
 ---
@@ -764,13 +764,13 @@ Le script `run_tests.sh` permet d'exécuter les tests automatiquement avec des f
 ./run_tests.sh [OPTIONS]
 ```
 
-| Flag | Description |
-|------|-------------|
-| `-s` | Tests Syntaxe (analyse syntaxique) |
+| Flag | Description                                       |
+| ---- | ------------------------------------------------- |
+| `-s` | Tests Syntaxe (analyse syntaxique)                |
 | `-v` | Tests Verif (passe 1 - vérifications sémantiques) |
-| `-g` | Tests Gencode (passe 2 - génération de code) |
-| `-a` | Tous les tests |
-| `-h` | Aide |
+| `-g` | Tests Gencode (passe 2 - génération de code)      |
+| `-a` | Tous les tests                                    |
+| `-h` | Aide                                              |
 
 **Exemples :**
 ```bash
