@@ -1,15 +1,15 @@
 // Test: If statement
 void main() {
-    int test_var_1 = 10;
-    int test_var_2 = 0;
+    int x = 10;
+    int r = 0;
 
-    if (test_var_1 > 5) {
-        test_var_2 = 1;
+    if (x > 5) {
+        r = 1;
     }
-    print("if result: ", test_var_2);
+    print("if result: ", r);
 
-    if (test_var_1 < 5) {
-        test_var_2 = 99;
+    if (x < 5) {
+        r = 99;
     }
-    print(" unchanged: ", test_var_2);
+    print(" unchanged: ", r);
 }

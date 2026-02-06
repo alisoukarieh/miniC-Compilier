@@ -1,8 +1,8 @@
 // Test: Unary operators
 void main() {
-    int test_var_1 = 42;
-    int test_var_neg = -test_var_1;
+    int x = 42;
+    int neg = -x;
 
-    print("original: ", test_var_1);
-    print(" negated: ", test_var_neg);
+    print("original: ", x);
+    print(" negated: ", neg);
 }

@@ -1,11 +1,11 @@
 // Test: Global variables
-int test_var_global = 100;
-int test_var_global2 = 50;
+int g1 = 100;
+int g2 = 50;
 
 void main() {
-    int test_var_local = test_var_global + test_var_global2;
-    print("global sum: ", test_var_local);
+    int loc = g1 + g2;
+    print("global sum: ", loc);
 
-    test_var_global = 200;
-    print(" modified: ", test_var_global);
+    g1 = 200;
+    print(" modified: ", g1);
 }

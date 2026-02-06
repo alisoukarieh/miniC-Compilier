@@ -1,19 +1,19 @@
 // Test: If-else statement
 void main() {
-    int test_var_1 = 10;
-    int test_var_2 = 0;
+    int x = 10;
+    int r = 0;
 
-    if (test_var_1 > 20) {
-        test_var_2 = 1;
+    if (x > 20) {
+        r = 1;
     } else {
-        test_var_2 = 2;
+        r = 2;
     }
-    print("else taken: ", test_var_2);
+    print("else taken: ", r);
 
-    if (test_var_1 < 20) {
-        test_var_2 = 3;
+    if (x < 20) {
+        r = 3;
     } else {
-        test_var_2 = 4;
+        r = 4;
     }
-    print(" if taken: ", test_var_2);
+    print(" if taken: ", r);
 }

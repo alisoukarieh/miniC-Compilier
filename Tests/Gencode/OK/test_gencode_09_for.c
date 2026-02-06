@@ -1,10 +1,10 @@
 // Test: For loop
 void main() {
-    int test_var_1 = 0;
-    int test_var_i = 0;
+    int sum = 0;
+    int i = 0;
 
-    for (test_var_i = 1; test_var_i <= 5; test_var_i = test_var_i + 1) {
-        test_var_1 = test_var_1 + test_var_i;
+    for (i = 1; i <= 5; i = i + 1) {
+        sum = sum + i;
     }
-    print("sum 1-5: ", test_var_1);
+    print("sum 1-5: ", sum);
 }

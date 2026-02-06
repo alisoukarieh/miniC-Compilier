@@ -1,20 +1,20 @@
 // Test: Comparison operators
 void main() {
-    int test_var_1 = 5;
-    int test_var_2 = 10;
-    int test_var_3 = 5;
+    int a = 5;
+    int b = 10;
+    int c = 5;
 
-    bool test_var_lt = test_var_1 < test_var_2;
-    bool test_var_gt = test_var_2 > test_var_1;
-    bool test_var_le = test_var_1 <= test_var_3;
-    bool test_var_ge = test_var_1 >= test_var_3;
-    bool test_var_eq = test_var_1 == test_var_3;
-    bool test_var_ne = test_var_1 != test_var_2;
+    bool lt = a < b;
+    bool gt = b > a;
+    bool le = a <= c;
+    bool ge = a >= c;
+    bool eq = a == c;
+    bool ne = a != b;
 
-    print("lt: ", test_var_lt);
-    print(" gt: ", test_var_gt);
-    print(" le: ", test_var_le);
-    print(" ge: ", test_var_ge);
-    print(" eq: ", test_var_eq);
-    print(" ne: ", test_var_ne);
+    print("lt: ", lt);
+    print(" gt: ", gt);
+    print(" le: ", le);
+    print(" ge: ", ge);
+    print(" eq: ", eq);
+    print(" ne: ", ne);
 }

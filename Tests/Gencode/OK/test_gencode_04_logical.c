@@ -1,17 +1,17 @@
 // Test: Logical operators
 void main() {
-    bool test_var_1 = true;
-    bool test_var_2 = false;
+    bool t = true;
+    bool f = false;
 
-    bool test_var_and = test_var_1 && test_var_1;
-    bool test_var_or = test_var_1 || test_var_2;
-    bool test_var_not = !test_var_2;
-    bool test_var_and_f = test_var_1 && test_var_2;
-    bool test_var_or_f = test_var_2 || test_var_2;
+    bool r1 = t && t;
+    bool r2 = t || f;
+    bool r3 = !f;
+    bool r4 = t && f;
+    bool r5 = f || f;
 
-    print("and: ", test_var_and);
-    print(" or: ", test_var_or);
-    print(" not: ", test_var_not);
-    print(" and_f: ", test_var_and_f);
-    print(" or_f: ", test_var_or_f);
+    print("and: ", r1);
+    print(" or: ", r2);
+    print(" not: ", r3);
+    print(" and_f: ", r4);
+    print(" or_f: ", r5);
 }

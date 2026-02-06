@@ -1,12 +1,12 @@
 // Test: Nested blocks
 void main() {
-    int test_var_1 = 10;
+    int a = 10;
     {
-        int test_var_2 = 20;
+        int b = 20;
         {
-            int test_var_3 = test_var_1 + test_var_2;
-            print("nested: ", test_var_3);
+            int c = a + b;
+            print("nested: ", c);
         }
     }
-    print(" outer: ", test_var_1);
+    print(" outer: ", a);
 }
